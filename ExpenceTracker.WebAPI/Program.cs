@@ -1,7 +1,6 @@
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -13,6 +12,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Додати кореневий маршрут
+app.MapGet("/", () => "Welcome to ExpenseTracker API! Try /weatherforecast or /openapi/v1.json");
 
 var summaries = new[]
 {
@@ -31,7 +33,8 @@ app.MapGet("/weatherforecast", () =>
             .ToArray();
         return forecast;
     })
-    .WithName("GetWeatherForecast");
+    .WithName("GetWeatherForecast")
+    .WithOpenApi();
 
 app.Run();
 
