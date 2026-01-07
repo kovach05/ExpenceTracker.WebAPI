@@ -19,7 +19,7 @@ public class TransactionsController : ControllerBase
    }
 
    [HttpPost]
-   public async Task<IActionResult> Create(CreateTransactionRequest request)
+   public async Task<IActionResult> Create([FromBody] CreateTransactionRequest request)
    {
       // Отримуємо UserId з токена авторизації
       var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);

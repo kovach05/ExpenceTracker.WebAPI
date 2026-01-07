@@ -78,8 +78,21 @@ public class CategoryController : ControllerBase
     // Хелпер-метод для отримання UserId з токена
     private Guid GetUserId()
     {
-        var claim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (claim == null) throw new UnauthorizedAccessException();
-        return Guid.Parse(claim.Value);
+        // Використовуємо FindFirstValue — це зручний метод розширення
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // Якщо стандартний NameIdentifier не спрацював, спробуємо знайти за назвою "sub"
+        if (string.IsNullOrEmpty(userIdString))
+        {
+            userIdString = User.FindFirstValue("sub");
+        }
+
+        if (Guid.TryParse(userIdString, out var userId))
+        {
+            return userId;
+        }
+
+        // Якщо ми тут, значить у токені замість ID лежить щось інше (наприклад, Email)
+        throw new UnauthorizedAccessException($"Невірний формат ID користувача у токені: {userIdString}");
     }
 }

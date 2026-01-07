@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Identity;
 
 namespace ExpenseTracker.Infrastructure.Models;
 
-public class UserRole : IdentityUserRole<string>
+// ОБОВ'ЯЗКОВО вказуємо <Guid> тут
+public class UserRole : IdentityUserRole<Guid> 
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
-}   
+    // Навігаційні властивості (опціонально, але корисно)
+    public virtual User User { get; set; }
+    public virtual Role Role { get; set; }
+}

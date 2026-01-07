@@ -16,34 +16,32 @@ public class JwtService : IJwtService
         _jwtSettings = jwtSettings.Value;
     }
 
-    public string GenerateToken(User user)
+    // У JwtService.cs
+    public string GenerateToken(User user, IList<string> roles) 
     {
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Email ?? ""),
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()), 
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.UserName ?? "")
         };
-        
-        if (user.UserRoles != null)
-        {
-            foreach (var role in user.UserRoles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role.Name));
-            }
-        }
-        
 
+        foreach (var roleName in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, roleName));
+        }
+
+        // ... далі твій код з ключем та JwtSecurityToken
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience, 
             claims: claims,
-            expires: DateTime.Now.AddMinutes(30),
+            expires: DateTime.Now.AddMinutes(120), 
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

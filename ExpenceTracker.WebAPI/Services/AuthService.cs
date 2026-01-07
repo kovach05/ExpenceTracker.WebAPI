@@ -3,10 +3,8 @@ using ExpenceTracker.Apllication.Interfaces;
 using ExpenceTracker.WebAPI.JWT;
 using ExpenseTracker.Infrastructure.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 
-namespace ExpenceTracker.Apllication.Services;
+namespace ExpenceTracker.WebAPI.Services;
 
 public class AuthService : IAuthService
 {
@@ -47,20 +45,21 @@ public class AuthService : IAuthService
     
     public async Task<(bool IsSuccess, string TokenOrMessage)> LoginAsync(LoginRequest request)
     {
-        // шукаємо користувача по username
         var user = await _userManager.FindByNameAsync(request.Username);
 
         if (user == null)
             return (false, "Invalid username or password");
 
-        // перевіряємо пароль
         var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
 
         if (!result.Succeeded)
             return (false, "Invalid username or password");
 
-        // генеруємо JWT
-        var token = _jwtService.GenerateToken(user);
+        // 1. Отримуємо ролі користувача з Identity
+        var roles = await _userManager.GetRolesAsync(user);
+
+        // 2. Передаємо користувача ТА ролі в генератор токена
+        var token = _jwtService.GenerateToken(user, roles);
 
         return (true, token);
     }
