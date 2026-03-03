@@ -11,6 +11,9 @@ public class CreateTransactionRequest
     [Required(ErrorMessage = "Категорія є обов'язковою")]
     public Guid CategoryId { get; set; }
     
+    [Required]
+    public Guid AccountId { get; set; }
+    
     [MaxLength(200, ErrorMessage = "Коментар не може перевищувати 200 символів")]
     public string? Comment { get; set; }
     

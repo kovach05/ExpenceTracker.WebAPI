@@ -11,7 +11,13 @@ public class Transaction
     public string? Description {get;set;}
     public DateTime Date { get; set; } = DateTime.UtcNow;
     public string? Type {get;set;}
-    // Навігаційні властивості (Relationships)
+    
     [ForeignKey("CategoryId")]
     public virtual Category Category { get; set; } = null!;
+    public bool IsActive {get;set;} = true;
+    
+    public Guid AccountId {get;set;}
+
+    [ForeignKey("AccountId")]
+    public virtual Account Account { get; set; } = null!;
 }

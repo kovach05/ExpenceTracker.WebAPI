@@ -6,43 +6,73 @@ namespace ExpenceTracker.WebAPI.Services;
 
 public class TransactionService
 {
-    private readonly ExpenseTrackerDbContext _context;
+    private readonly ExpenseTrackerDbContext _dbContext;
 
     public TransactionService(ExpenseTrackerDbContext context)
     {
-        _context = context;
+        _dbContext = context;
     }
 
-    // 1. Змінюємо ім'я параметра з Id на categoryId для ясності
-    public async Task<Transaction> CreateTransactionAsync(Guid userId, decimal amount, Guid categoryId, string? comment)
+    public async Task<List<Transaction>> GetUserTransactionsAsync(Guid userId)
     {
-        // 2. Тепер шукаємо категорію за вказаним categoryId
-        var category = await _context.Categories
+        return await _dbContext.Transactions
+            .Include(t => t.Category)
+            .Where(t => t.UserId == userId && t.IsActive)
+            .OrderByDescending(t => t.Date)
+            .ToListAsync();
+        
+    }
+    
+    public async Task<Transaction> CreateTransactionAsync(Guid userId, decimal amount, Guid categoryId, Guid accountId, string? comment)
+    {
+        // 1. Шукаємо рахунок і перевіряємо, чи він належить користувачу
+        var account = await _dbContext.Accounts
+            .FirstOrDefaultAsync(a => a.Id == accountId && a.UserId == userId);
+
+        if (account == null)
+            throw new Exception("Рахунок не знайдено або доступ заборонено.");
+
+        // 2. Шукаємо категорію
+        var category = await _dbContext.Categories
             .FirstOrDefaultAsync(c => c.Id == categoryId);
 
         if (category == null)
             throw new Exception("Категорію не знайдено.");
 
         if (category.UserId != userId)
-            throw new Exception("Доступ заборонено: категорія належить іншому користувачу.");
+            throw new Exception("Доступ заборонено до цієї категорії.");
 
-        if (!category.IsActive)
-            throw new Exception("Ця категорія деактивована. Оберіть іншу.");
+        // --- НОВА ЛОГІКА БАЛАНСУ ---
+        // 3. Змінюємо баланс рахунку в залежності від типу категорії
+        if (category.Type == "Income") // Якщо це дохід
+        {
+            account.Balance += amount;
+        }
+        else if (category.Type == "Expense") // Якщо це витрата
+        {
+            // Можна додати перевірку: якщо на рахунку недостатньо грошей
+            // if (account.Balance < amount) throw new Exception("Недостатньо коштів на рахунку.");
+        
+            account.Balance -= amount;
+        }
 
-        // 3. Створення об'єкта транзакції
+        // 4. Створення об'єкта транзакції (тепер з AccountId)
         var transaction = new Transaction
         {
-            Id = Guid.NewGuid(),    // Це новий ID самої транзакції
+            Id = Guid.NewGuid(),
             UserId = userId,
-            CategoryId = categoryId, // Тепер це ім'я збігається з параметром зверху
+            CategoryId = categoryId,
+            AccountId = accountId, // Додаємо зв'язок з рахунком
             Amount = amount,
             Date = DateTime.UtcNow,
-            Description = comment,   // Зверніть увагу: у вашій моделі поле називається Description, а не Comment
-            Type = category.Type     // Копіюємо тип (income/expense) з категорії
+            Description = comment,
+            Type = category.Type,
+            IsActive = true
         };
 
-        _context.Transactions.Add(transaction);
-        await _context.SaveChangesAsync();
+        // Зберігаємо і транзакцію, і оновлений баланс рахунку (EF зробить це в одній транзакції)
+        _dbContext.Transactions.Add(transaction);
+        await _dbContext.SaveChangesAsync();
 
         return transaction;
     }
