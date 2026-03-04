@@ -1,5 +1,6 @@
 using System.Text;
 using ExpenceTracker.Apllication.Interfaces;
+using ExpenceTracker.Infrastructure;
 using ExpenceTracker.WebAPI.JWT;
 using ExpenceTracker.WebAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -85,6 +86,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<TransactionService>();
+builder.Services.AddScoped<TransferService>();
 
 var app = builder.Build();
 

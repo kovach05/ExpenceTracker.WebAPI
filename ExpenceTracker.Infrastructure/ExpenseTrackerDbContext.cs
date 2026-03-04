@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace ExpenseTracker.Infrastructure;
+namespace ExpenceTracker.Infrastructure;
 
 public class ExpenseTrackerDbContext : IdentityDbContext<
-    User,           // Твій клас користувача
-    Role,           // Твій клас ролі
-    Guid,           // Тип ключа
+    User,
+    Role,
+    Guid,
     IdentityUserClaim<Guid>, 
-    UserRole,       // Твій кастомний UserRole
+    UserRole,
     IdentityUserLogin<Guid>, 
     IdentityRoleClaim<Guid>, 
     IdentityUserToken<Guid>>
@@ -20,12 +20,12 @@ public class ExpenseTrackerDbContext : IdentityDbContext<
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Account> Accounts { get; set; }
+    public DbSet<Transfer> Transfers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        base.OnModelCreating(builder); // ЦЕ МАЄ БУТИ ПЕРШИМ
-
-        // Налаштовуємо зв'язок Many-to-Many через кастомну таблицю
+        base.OnModelCreating(builder);
+        
         builder.Entity<UserRole>(userRole =>
         {
             userRole.HasKey(ur => new { ur.UserId, ur.RoleId });

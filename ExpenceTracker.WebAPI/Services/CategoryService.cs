@@ -1,3 +1,4 @@
+using ExpenceTracker.Infrastructure;
 using ExpenseTracker.Infrastructure;
 using ExpenseTracker.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
