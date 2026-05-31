@@ -45,13 +45,31 @@ public class AccountController : ControllerBase
             UserId = userId,
             Name = request.Name,
             Balance = request.InitialBalance,
-            IsActive = true
+            // ДОДАЙ ЦЕЙ РЯДОК:
+            Currency = request.Currency, 
+            IsActive = true,
+            DateCreated = DateTime.UtcNow // Гарна практика ініціалізувати тут
         };
-        
-        _dbContext.Accounts.Add(account);
+    
+        _dbContext.Accounts.Add(account); // Переконайся, що тут _dbContext або _context (у тебе в коді було _dbContext)
         await _dbContext.SaveChangesAsync();
-        
+    
         return Ok(account);
+    }
+    
+    [HttpDelete("{id}")] // Важливо: тут має бути {id}
+    public async Task<IActionResult> DeleteAccount(Guid id)
+    {
+        var account = await _dbContext.Accounts.FindAsync(id);
+        if (account == null)
+        {
+            return NotFound();
+        }
+
+        _dbContext.Accounts.Remove(account);
+        await _dbContext.SaveChangesAsync();
+
+        return NoContent(); // Повертає 204
     }
 
     private Guid GetUserId()

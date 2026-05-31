@@ -21,6 +21,7 @@ public class ExpenseTrackerDbContext : IdentityDbContext<
     public DbSet<Category> Categories { get; set; }
     public DbSet<Account> Accounts { get; set; }
     public DbSet<Transfer> Transfers { get; set; }
+    public DbSet<Goal> Goals { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

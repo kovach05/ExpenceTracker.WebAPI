@@ -13,23 +13,35 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Контролери
+// --- 1. РЕЄСТРАЦІЯ СЕРВІСІВ (builder.Services) ---
+
 builder.Services.AddControllers();
 
-// 2. DbContext
+// Додаємо CORS сюди (ДО builder.Build!)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        // Додаємо обидва порти на випадок змін (5173 та 5174)
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174") 
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 builder.Services.AddDbContext<ExpenseTrackerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Identity
 builder.Services.AddIdentity<User, Role>()
     .AddEntityFrameworkStores<ExpenseTrackerDbContext>()
     .AddDefaultTokenProviders();
 
-// 4. JWT Налаштування (Зчитування з appsettings.json)
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 
-// 5. АВТЕНТИФІКАЦІЯ (Цей блок був видалений у тебе!)
+builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -52,57 +64,65 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-
-// 6. SWAGGER (Тільки ОДИН раз з налаштуванням безпеки)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "ExpenseTracker API", Version = "v1" });
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "ExpenseTracker API", Version = "v1" });
 
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    // Додаємо опис схеми безпеки для JWT
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Будь ласка, введіть токен у форматі: Bearer {ваш_токен}",
         Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
         BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Введіть JWT токен"
+        Scheme = "Bearer"
     });
 
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
         {
-            new OpenApiSecurityScheme
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
             },
-            Array.Empty<string>()
+            new string[] {}
         }
     });
 });
 
-// 7. РЕЄСТРАЦІЯ СЕРВІСІВ (Тільки один раз кожен)
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<TransferService>();
 
+// --- 2. ПОБУДОВА ДОДАТКА ---
 var app = builder.Build();
 
-// 8. MIDDLEWARE PIPELINE (Порядок дуже важливий!)
+// --- 3. MIDDLEWARE PIPELINE (app.Use...) ---
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// Порядок важливий!
 app.UseHttpsRedirection();
+app.UseRouting();
 
-// Важливо: Authentication ПЕРЕД Authorization
+// Активуємо CORS після Routing, але перед Auth
+app.UseCors("AllowReactApp"); 
+
 app.UseAuthentication(); 
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+app.Run();app.Run();

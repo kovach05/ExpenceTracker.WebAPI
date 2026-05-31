@@ -78,6 +78,37 @@ namespace ExpenceTracker.Infrastructure.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("ExpenseTracker.Infrastructure.Models.Goal", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Current")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Target")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Goals");
+                });
+
             modelBuilder.Entity("ExpenseTracker.Infrastructure.Models.Role", b =>
                 {
                     b.Property<Guid>("Id")

@@ -1,9 +1,10 @@
 using System.Security.Claims;
+using ExpenceTracker.Infrastructure;
 using ExpenceTracker.WebAPI.DTOs;
 using ExpenceTracker.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; // Важливо для Include та ToListAsync
 
 namespace ExpenceTracker.WebAPI.Controllers;
 
@@ -13,10 +14,12 @@ namespace ExpenceTracker.WebAPI.Controllers;
 public class TransactionsController : ControllerBase
 {
    private readonly TransactionService _transactionService;
+   private readonly ExpenseTrackerDbContext _dbContext;
 
-   public TransactionsController(TransactionService transactionService)
+   public TransactionsController(TransactionService transactionService, ExpenseTrackerDbContext dbContext)
    {
       _transactionService = transactionService;
+      _dbContext = dbContext;
    }
 
    [HttpPost]
@@ -34,7 +37,6 @@ public class TransactionsController : ControllerBase
             request.AccountId,
             request.Comment);
 
-         // Повертаємо результат
          return Ok(new TransactionResponse
          {
             Id = t.Id,
@@ -51,28 +53,40 @@ public class TransactionsController : ControllerBase
    }
    
    [HttpGet]
-   public async Task<IActionResult> GetMyTransactions()
+   public async Task<IActionResult> GetTransactions()
    {
       var userId = GetUserId();
-      var transactions = await _transactionService.GetUserTransactionsAsync(userId);
+    
+      // Отримуємо транзакції, які належать рахункам поточного користувача
+      var transactions = await _dbContext.Transactions
+         .Include(t => t.Account)    
+         .Include(t => t.Category)   
+         .Where(t => t.Account.UserId == userId) // Фільтруємо по власнику рахунку
+         .Select(t => new {
+            t.Id,
+            t.Amount,
+            Comment = t.Description ?? "", // Переконайся, що в моделі Description або Comment
+            t.Date,
+            CategoryName = t.Category.Name,
+            CategoryType = t.Category.Type.ToString(),
+            AccountName = t.Account.Name,
+            Currency = t.Account.Currency // Тепер React побачить валюту
+         })
+         .OrderByDescending(t => t.Date)
+         .ToListAsync();
 
-      var response = transactions.Select(t => new TransactionResponse
-      {
-         Id = t.Id,
-         Amount = t.Amount,
-         Description = t.Description ?? "",
-         Date = t.Date,
-         Type = t.Type,
-         // Якщо в моделі Transaction є зв'язок з Category, можна дістати ім'я:
-         CategoryName = t.Category?.Name ?? "Без категорії" 
-      });
-
-      return Ok(response);
+      return Ok(transactions);
    }
 
    private Guid GetUserId()
    {
       var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-      return Guid.Parse(userIdString!);
+      
+      if (Guid.TryParse(userIdString, out var userId))
+      {
+          return userId;
+      }
+      
+      throw new UnauthorizedAccessException("Користувача не ідентифіковано");
    }
 }
