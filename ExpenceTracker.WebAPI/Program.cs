@@ -13,16 +13,15 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. РЕЄСТРАЦІЯ СЕРВІСІВ (builder.Services) ---
+
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 builder.Services.AddControllers();
 
-// Додаємо CORS сюди (ДО builder.Build!)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        // Додаємо обидва порти на випадок змін (5173 та 5174)
         policy.WithOrigins("http://localhost:5173", "http://localhost:5174") 
               .AllowAnyHeader()
               .AllowAnyMethod()
@@ -68,8 +67,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "ExpenseTracker API", Version = "v1" });
-
-    // Додаємо опис схеми безпеки для JWT
+    
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
@@ -102,10 +100,8 @@ builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<TransferService>();
 
-// --- 2. ПОБУДОВА ДОДАТКА ---
 var app = builder.Build();
 
-// --- 3. MIDDLEWARE PIPELINE (app.Use...) ---
 
 if (app.Environment.IsDevelopment())
 {
@@ -113,11 +109,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Порядок важливий!
 app.UseHttpsRedirection();
 app.UseRouting();
 
-// Активуємо CORS після Routing, але перед Auth
 app.UseCors("AllowReactApp"); 
 
 app.UseAuthentication(); 

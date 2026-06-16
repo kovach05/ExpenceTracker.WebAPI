@@ -11,4 +11,5 @@ public class Account
     public bool IsActive { get; set; } = true;
     
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+    public bool IsSmart { get; set; } = false;
 }

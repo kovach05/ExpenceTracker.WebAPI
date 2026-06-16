@@ -4,7 +4,7 @@ using ExpenceTracker.WebAPI.DTOs;
 using ExpenceTracker.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore; // Важливо для Include та ToListAsync
+using Microsoft.EntityFrameworkCore;
 
 namespace ExpenceTracker.WebAPI.Controllers;
 
@@ -36,7 +36,25 @@ public class TransactionsController : ControllerBase
             request.CategoryId, 
             request.AccountId,
             request.Comment);
+         
+         
+         var category = await _dbContext.Categories.FindAsync(request.CategoryId);
+         
+         if (category != null && t.Type.ToString().ToLower() == "expense")
+         {
+             var currentMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+             string budgetType = DetermineBudgetType(category.Name);
+             
+             var activeBudget = await _dbContext.MonthlyBudgets
+                 .FirstOrDefaultAsync(b => b.UserId == userId.ToString() && b.BudgetType == budgetType && b.MonthYear == currentMonth);
 
+             if (activeBudget != null)
+             {
+                 activeBudget.CurrentSpent += t.Amount;
+                 await _dbContext.SaveChangesAsync();
+             }
+         }
+         
          return Ok(new TransactionResponse
          {
             Id = t.Id,
@@ -57,25 +75,35 @@ public class TransactionsController : ControllerBase
    {
       var userId = GetUserId();
     
-      // Отримуємо транзакції, які належать рахункам поточного користувача
       var transactions = await _dbContext.Transactions
          .Include(t => t.Account)    
          .Include(t => t.Category)   
-         .Where(t => t.Account.UserId == userId) // Фільтруємо по власнику рахунку
+         .Where(t => t.Account.UserId == userId)
          .Select(t => new {
             t.Id,
             t.Amount,
-            Comment = t.Description ?? "", // Переконайся, що в моделі Description або Comment
+            Comment = t.Description ?? "",
             t.Date,
             CategoryName = t.Category.Name,
             CategoryType = t.Category.Type.ToString(),
             AccountName = t.Account.Name,
-            Currency = t.Account.Currency // Тепер React побачить валюту
+            Currency = t.Account.Currency
          })
          .OrderByDescending(t => t.Date)
          .ToListAsync();
 
       return Ok(transactions);
+   }
+   
+   private string DetermineBudgetType(string categoryName)
+   {
+      string[] needsCategories = { "Продукти", "Комуналка", "Оренда", "Транспорт", "Ліки", "Аптека", "Комунальні", "Їжа" };
+      string[] wantsCategories = { "Кафе", "Ресторани", "Розваги", "Кіно", "Шопінг", "Одяг", "Таксі", "Хобі" };
+
+      if (needsCategories.Contains(categoryName)) return "Needs";
+      if (wantsCategories.Contains(categoryName)) return "Wants";
+    
+      return "Savings";
    }
 
    private Guid GetUserId()

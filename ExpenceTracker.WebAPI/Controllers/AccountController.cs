@@ -21,7 +21,6 @@ public class AccountController : ControllerBase
         _dbContext = dbContext;
     }
 
-    /// oтримати всі рахунки користувача
     [HttpGet]
     public async Task<IActionResult> GetAccounts()
     {
@@ -33,7 +32,6 @@ public class AccountController : ControllerBase
         return Ok(accounts);
     }
     
-//створення рахунку
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateAccountRequest request)
     {
@@ -45,13 +43,13 @@ public class AccountController : ControllerBase
             UserId = userId,
             Name = request.Name,
             Balance = request.InitialBalance,
-            // ДОДАЙ ЦЕЙ РЯДОК:
+            IsSmart = request.IsSmart,
             Currency = request.Currency, 
             IsActive = true,
-            DateCreated = DateTime.UtcNow // Гарна практика ініціалізувати тут
+            DateCreated = DateTime.UtcNow
         };
     
-        _dbContext.Accounts.Add(account); // Переконайся, що тут _dbContext або _context (у тебе в коді було _dbContext)
+        _dbContext.Accounts.Add(account);
         await _dbContext.SaveChangesAsync();
     
         return Ok(account);

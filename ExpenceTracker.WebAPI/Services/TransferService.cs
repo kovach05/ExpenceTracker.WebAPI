@@ -16,7 +16,7 @@ public class TransferService
 
     public async Task CreateTransferAsync(Guid userId, Guid fromId, Guid toId, decimal amount, string comment)
     {
-        // 1. Знайти обидва рахунки
+
         var fromAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.Id == fromId && a.UserId == userId);
         var toAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.Id == toId && a.UserId == userId);
 

@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ExpenceTracker.WebAPI.Controllers;
 
-
 [ApiController]
 [Route("api/[controller]")]
 [Authorize] // Доступ тільки для авторизованих користувачів
@@ -27,12 +26,13 @@ public class CategoryController : ControllerBase
         var userId = GetUserId();
         var categories = await _categoryService.GetUserCategoriesAsync(userId);
         
-        // Мапимо моделі БД на DTO (можна використовувати AutoMapper, але для диплома можна і вручну)
+        // Мапимо моделі БД на DTO
         var response = categories.Select(c => new CategoryResponse
         {
             Id = c.Id,
             Name = c.Name,
-            Type = c.Type
+            Type = c.Type,
+            BudgetType = c.BudgetType // 🟢 ДОДАНО: повертаємо BudgetType на фронтенд
         });
 
         return Ok(response);
@@ -48,13 +48,15 @@ public class CategoryController : ControllerBase
         
         try 
         {
-            var category = await _categoryService.CreateCategoryAsync(userId, request.Name, request.Type);
+            // 🟢 ОНОВЛЕНО: Передаємо request.BudgetType четвертим параметром у сервіс
+            var category = await _categoryService.CreateCategoryAsync(userId, request.Name, request.Type, request.BudgetType);
             
             return CreatedAtAction(nameof(GetMyCategories), new { id = category.Id }, new CategoryResponse
             {
                 Id = category.Id,
                 Name = category.Name,
-                Type = category.Type
+                Type = category.Type,
+                BudgetType = category.BudgetType // 🟢 ДОДАНО: повертаємо створений BudgetType
             });
         }
         catch (Exception ex)
@@ -78,10 +80,8 @@ public class CategoryController : ControllerBase
     // Хелпер-метод для отримання UserId з токена
     private Guid GetUserId()
     {
-        // Використовуємо FindFirstValue — це зручний метод розширення
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // Якщо стандартний NameIdentifier не спрацював, спробуємо знайти за назвою "sub"
         if (string.IsNullOrEmpty(userIdString))
         {
             userIdString = User.FindFirstValue("sub");
@@ -92,7 +92,6 @@ public class CategoryController : ControllerBase
             return userId;
         }
 
-        // Якщо ми тут, значить у токені замість ID лежить щось інше (наприклад, Email)
         throw new UnauthorizedAccessException($"Невірний формат ID користувача у токені: {userIdString}");
     }
 }

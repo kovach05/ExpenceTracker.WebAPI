@@ -54,11 +54,9 @@ public class AuthService : IAuthService
 
         if (!result.Succeeded)
             return (false, "Invalid username or password");
-
-        // 1. Отримуємо ролі користувача з Identity
+        
         var roles = await _userManager.GetRolesAsync(user);
-
-        // 2. Передаємо користувача ТА ролі в генератор токена
+        
         var token = _jwtService.GenerateToken(user, roles);
 
         return (true, token);

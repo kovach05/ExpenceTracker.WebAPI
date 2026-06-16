@@ -26,14 +26,12 @@ public class TransactionService
     
     public async Task<Transaction> CreateTransactionAsync(Guid userId, decimal amount, Guid categoryId, Guid accountId, string? comment)
     {
-        // 1. Шукаємо рахунок і перевіряємо, чи він належить користувачу
         var account = await _dbContext.Accounts
             .FirstOrDefaultAsync(a => a.Id == accountId && a.UserId == userId);
 
         if (account == null)
             throw new Exception("Рахунок не знайдено або доступ заборонено.");
-
-        // 2. Шукаємо категорію
+        
         var category = await _dbContext.Categories
             .FirstOrDefaultAsync(c => c.Id == categoryId);
 
@@ -42,36 +40,30 @@ public class TransactionService
 
         if (category.UserId != userId)
             throw new Exception("Доступ заборонено до цієї категорії.");
-
-        // --- НОВА ЛОГІКА БАЛАНСУ ---
-        // 3. Змінюємо баланс рахунку в залежності від типу категорії
-        if (category.Type == "Income") // Якщо це дохід
+        
+        if (category.Type == "Income")
         {
             account.Balance += amount;
         }
-        else if (category.Type == "Expense") // Якщо це витрата
+        else if (category.Type == "Expense")
         {
-            // Можна додати перевірку: якщо на рахунку недостатньо грошей
-            // if (account.Balance < amount) throw new Exception("Недостатньо коштів на рахунку.");
         
             account.Balance -= amount;
         }
-
-        // 4. Створення об'єкта транзакції (тепер з AccountId)
+        
         var transaction = new Transaction
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             CategoryId = categoryId,
-            AccountId = accountId, // Додаємо зв'язок з рахунком
+            AccountId = accountId,
             Amount = amount,
             Date = DateTime.UtcNow,
             Description = comment,
             Type = category.Type,
             IsActive = true
         };
-
-        // Зберігаємо і транзакцію, і оновлений баланс рахунку (EF зробить це в одній транзакції)
+        
         _dbContext.Transactions.Add(transaction);
         await _dbContext.SaveChangesAsync();
 

@@ -50,21 +50,19 @@ public class GoalsController : ControllerBase
         return NoContent();
     }
     
-    [HttpDelete("cancel/{goalId}/{accountId}")]
-public async Task<IActionResult> CancelGoal(int goalId, int accountId)
-{
-    var goal = await _context.Goals.FindAsync(goalId);
-    var account = await _context.Accounts.FindAsync(accountId);
+        [HttpDelete("cancel/{goalId}/{accountId}")]
+    public async Task<IActionResult> CancelGoal(int goalId, int accountId)
+    {
+        var goal = await _context.Goals.FindAsync(goalId);
+        var account = await _context.Accounts.FindAsync(accountId);
 
-    if (goal == null || account == null) return NotFound();
+        if (goal == null || account == null) return NotFound();
+        
+        account.Balance += goal.Current; 
 
-    // Повертаємо гроші на рахунок (врахуй валюту, якщо потрібно)
-    // Якщо ціль в UAH, а рахунок в USD — треба конвертувати назад
-    account.Balance += goal.Current; 
+        _context.Goals.Remove(goal);
+        await _context.SaveChangesAsync();
 
-    _context.Goals.Remove(goal);
-    await _context.SaveChangesAsync();
-
-    return NoContent();
-}   
-}
+        return NoContent();
+    }   
+    }

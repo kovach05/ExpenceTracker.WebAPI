@@ -21,7 +21,7 @@ public class CategoryService
             .ToListAsync();
     }
 
-    public async Task<Category> CreateCategoryAsync(Guid userId, string name, string type)
+    public async Task<Category> CreateCategoryAsync(Guid userId, string name, string type, string? budgetType = null)
     {
         var category = new Category
         {
@@ -39,16 +39,14 @@ public class CategoryService
     
     public async Task<bool> DeactivateCategoryAsync(Guid userId, Guid categoryId)
     {
-        // Шукаємо категорію, яка належить саме цьому юзеру
         var category = await _dbContext.Categories
             .FirstOrDefaultAsync(c => c.Id == categoryId && c.UserId == userId);
 
         if (category == null)
         {
-            return false; // Категорія не знайдена або належить іншому юзеру
+            return false;
         }
-
-        // Замість видалення — деактивуємо
+        
         category.IsActive = false;
 
         _dbContext.Categories.Update(category);
